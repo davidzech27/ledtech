@@ -154,7 +154,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 		return
 	}
 
-	createChatCompletion({
+	void createChatCompletion({
 		messages,
 		onContent: (content) => {
 			send(content)

@@ -58,7 +58,7 @@ const Home: NextPage = () => {
 	const generatingIndex = useRef<number | undefined>(undefined)
 
 	const getNextBotMessage = ({ messages }: { messages: string[] }) => {
-		getBotMessage({
+		void getBotMessage({
 			messages,
 			onContent: (content) => {
 				if (generatingIndex.current === undefined) {
@@ -84,7 +84,7 @@ const Home: NextPage = () => {
 
 			textInputRef?.current?.focus()
 		}
-	}, [])
+	})
 
 	const messagesRef = useRef<HTMLDivElement>(null)
 
@@ -94,7 +94,7 @@ const Home: NextPage = () => {
 	const textInputRef = useRef<HTMLTextAreaElement>(null)
 
 	const onSend = useDebouncedCallback(
-		() => {
+		async () => {
 			if (buttonDisabled)
 				return process.nextTick(() => setMessageInput((prev) => prev.trim()))
 
@@ -131,6 +131,7 @@ const Home: NextPage = () => {
 						{messages.map((message, index) => {
 							return (
 								<div
+									key={index}
 									className={clsx(
 										index % 2 === 1 && "font-medium opacity-[0.65]",
 										"mb-1 whitespace-pre-line"
