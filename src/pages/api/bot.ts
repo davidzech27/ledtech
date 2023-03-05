@@ -107,7 +107,7 @@ export default async function handler(req: NextRequest): Promise<Response> {
 
 						if (!result.done) {
 							const chunk = result.value
-
+							console.log({ parts: textDecoder.decode(chunk) })
 							const parts = textDecoder
 								.decode(chunk)
 								.split("\n")
@@ -116,8 +116,6 @@ export default async function handler(req: NextRequest): Promise<Response> {
 
 							for (const part of parts) {
 								if (part !== "[DONE]") {
-									console.log({ part })
-
 									try {
 										const contentDelta = JSON.parse(part).choices[0].delta
 											.content as string
