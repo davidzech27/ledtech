@@ -57,7 +57,7 @@ const Home: NextPage = () => {
 
 	const [messages, setMessages] = useState<string[]>([])
 
-	const addingContent = useRef(true)
+	const [addingContent, setAddingContent] = useState(true)
 
 	const addingContentIndex = useRef(0)
 
@@ -92,7 +92,7 @@ const Home: NextPage = () => {
 
 							addingContentIndex.current += 2
 
-							addingContent.current = false
+							setAddingContent(false)
 						}
 					}, ADD_CONTENT_MILLIS)
 				} else {
@@ -128,7 +128,7 @@ const Home: NextPage = () => {
 			if (buttonDisabled)
 				return process.nextTick(() => setMessageInput((prev) => prev.trim()))
 
-			addingContent.current = true
+			setAddingContent(true)
 
 			setMessages((prev) => [...prev, messageInput.trim()])
 
@@ -144,7 +144,7 @@ const Home: NextPage = () => {
 		}
 	)
 
-	const buttonDisabled = messageInput.trim() === "" || addingContent.current
+	const buttonDisabled = messageInput.trim() === "" || addingContent
 
 	return (
 		<>
