@@ -96,37 +96,53 @@ export default async function handler(req: NextRequest): Promise<Response> {
 		}),
 	})
 
-	let { readable, writable } = new TransformStream({
-		transform: (chunk, controller) => {
-			const parts = textDecoder
-				.decode(chunk)
-				.split("\n")
-				.filter((line: any) => line !== "")
-				.map((line: any) => line.replace(/^data: /, ""))
+	return new Response(
+		new ReadableStream({
+			start: async (controller) => {
+				if (response.body) {
+					const reader = response.body.getReader()
 
-			for (const part of parts) {
-				if (part !== "[DONE]") {
-					try {
-						const contentDelta = JSON.parse(part).choices[0].delta.content as string
+					while (true) {
+						const result = await reader.read()
 
-						if (contentDelta === undefined) {
-							continue
+						if (!result.done) {
+							const chunk = result.value
+
+							const parts = textDecoder
+								.decode(chunk)
+								.split("\n")
+								.filter((line) => line !== "")
+								.map((line) => line.replace(/^data: /, ""))
+
+							for (const part of parts) {
+								if (part !== "[DONE]") {
+									try {
+										const contentDelta = JSON.parse(part).choices[0].delta
+											.content as string
+
+										controller.enqueue(textEncoder.encode(contentDelta))
+									} catch (error) {
+										console.error(error)
+									}
+								} else {
+									controller.close()
+
+									return
+								}
+							}
+						} else {
+							console.log(
+								"This also shouldn't happen, because controller should be close()ed before getting to end of stream"
+							)
 						}
-
-						controller.enqueue(textEncoder.encode(contentDelta))
-					} catch (error) {
-						console.error(error)
 					}
 				} else {
-					return
+					console.error("This shouldn't happen")
 				}
-			}
-		},
-	})
-
-	response.body?.pipeTo(writable)
-
-	return new Response(readable, {
-		headers: { "Content-Type": "text/plain; charset=utf-8" },
-	})
+			},
+		}),
+		{
+			headers: { "Content-Type": "text/plain; charset=utf-8" },
+		}
+	)
 }
