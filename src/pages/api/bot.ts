@@ -116,6 +116,8 @@ export default async function handler(req: NextRequest): Promise<Response> {
 
 							for (const part of parts) {
 								if (part !== "[DONE]") {
+									console.log({ part })
+
 									try {
 										const contentDelta = JSON.parse(part).choices[0].delta
 											.content as string
@@ -131,7 +133,7 @@ export default async function handler(req: NextRequest): Promise<Response> {
 								}
 							}
 						} else {
-							console.log(
+							console.error(
 								"This also shouldn't happen, because controller should be close()ed before getting to end of stream"
 							)
 						}
