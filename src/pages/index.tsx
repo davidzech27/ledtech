@@ -10,6 +10,8 @@ const workSans = Work_Sans({
 	subsets: ["latin"],
 })
 
+const ADD_CONTENT_MILLIS = 140
+
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
@@ -55,22 +57,50 @@ const Home: NextPage = () => {
 
 	const [messages, setMessages] = useState<string[]>([])
 
-	const generatingIndex = useRef<number | undefined>(undefined)
+	const addingContent = useRef(true)
+
+	const addingContentIndex = useRef(0)
+
+	const addContent = (content: string) => {
+		setMessages((prev) => [
+			...prev.slice(0, addingContentIndex.current),
+			(prev[addingContentIndex.current] ?? "") + content,
+		])
+
+		scrollToBottom()
+	}
+
+	const contentQueue = useRef<string[]>([])
+	const receivingContent = useRef(false)
 
 	const getNextBotMessage = ({ messages }: { messages: string[] }) => {
 		void getBotMessage({
 			messages,
 			onContent: (content) => {
-				if (generatingIndex.current === undefined) {
-					generatingIndex.current = messages.length
+				if (!receivingContent.current) {
+					receivingContent.current = true
+
+					addContent(content)
+
+					const intervalId = setInterval(() => {
+						const next = contentQueue.current.shift()
+
+						if (next !== undefined) {
+							addContent(next)
+						} else if (!receivingContent.current) {
+							clearInterval(intervalId)
+
+							addingContentIndex.current += 2
+
+							addingContent.current = false
+						}
+					}, ADD_CONTENT_MILLIS)
+				} else {
+					contentQueue.current.push(content)
 				}
-
-				setMessages((prev) => [...prev.slice(0, generatingIndex.current), content])
-
-				scrollToBottom()
 			},
 			onFinish: () => {
-				generatingIndex.current = undefined
+				receivingContent.current = false
 			},
 		})
 	}
@@ -98,6 +128,8 @@ const Home: NextPage = () => {
 			if (buttonDisabled)
 				return process.nextTick(() => setMessageInput((prev) => prev.trim()))
 
+			addingContent.current = true
+
 			setMessages((prev) => [...prev, messageInput.trim()])
 
 			getNextBotMessage({ messages: [...messages, messageInput.trim()] })
@@ -112,7 +144,7 @@ const Home: NextPage = () => {
 		}
 	)
 
-	const buttonDisabled = messageInput.trim() === "" || generatingIndex.current !== undefined
+	const buttonDisabled = messageInput.trim() === "" || addingContent.current
 
 	return (
 		<>

@@ -1,71 +1,11 @@
-import { type NextApiRequest, type NextApiResponse } from "next"
-import { OpenAI } from "promptable"
-import { RequiredError } from "openai/dist/base"
+import { type NextRequest } from "next/server"
 import { env } from "~/env.mjs"
 
-const openai = new OpenAI(env.OPENAI_SECRET_KEY)
+export const config = {
+	runtime: "edge",
+}
 
 const model = "gpt-3.5-turbo"
-
-const createChatCompletion = async ({
-	messages,
-	onContent,
-	onFinish,
-	onError,
-}: {
-	messages: Message[]
-	onContent: (content: string) => void
-	onFinish: () => void
-	onError: (error: SyntaxError | RequiredError) => void
-}) => {
-	const response: any = await openai.api.createChatCompletion(
-		{
-			messages,
-			model,
-			temperature: 0,
-			stream: true,
-		},
-		{
-			responseType: "stream",
-		}
-	)
-
-	try {
-		let content = ""
-
-		response.data.on("data", (data: any) => {
-			const parts = data
-				.toString()
-				.split("\n")
-				.filter((line: any) => line !== "")
-				.map((line: any) => line.replace(/^data: /, ""))
-
-			for (const part of parts) {
-				if (part !== "[DONE]") {
-					try {
-						const contentDelta = JSON.parse(part).choices[0].delta.content as string
-
-						if (contentDelta === undefined) {
-							continue
-						}
-
-						content += contentDelta
-
-						onContent(content)
-					} catch (error) {
-						onError(error as SyntaxError)
-					}
-				} else {
-					onFinish()
-
-					return
-				}
-			}
-		})
-	} catch (error) {
-		onError(error as RequiredError)
-	}
-}
 
 interface Message {
 	role: "assistant" | "user" | "system"
@@ -87,7 +27,10 @@ Our goal is to create a suite of AI-powered tools that enable teachers to easily
 
 But this is just the beginning. We are looking for a multidisciplinary team of people to fulfill diverse roles, such as language model prompt engineering, speaking to teachers to understand their unique needs, and marketing our solutions. We need individuals who are passionate about learning and eager to spread this passion to all students.
 
-The recent advances in AI have given us a unique opportunity to be a part of something truly transformative. We could be a part of a revolution make personalized education accessible to everyone around the world. We are looking for individuals who share our vision and are ready to join us on this in this journey. Let's help build the future of education.`
+The recent advances in AI have given us a unique opportunity to be a part of something truly transformative. We could be a part of a revolution to make personalized education accessible to everyone around the world. We are looking for individuals who share our vision and are ready to join us on this journey. Let's help build the future of education.`
+
+const textEncoder = new TextEncoder()
+const textDecoder = new TextDecoder()
 
 const serializeMessages = (messageStrings: string[]) => {
 	const messages: Message[] = [
@@ -102,38 +45,18 @@ const serializeMessages = (messageStrings: string[]) => {
 	return messages
 }
 
-const SEND_MILLIS = 140
-
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-	const sendQueue: string[] = []
-	let firstMessageSent = false
-	let finishedGenerating = false
-	let intervalId: NodeJS.Timer
-	const onFinishGenerating = () => {
-		finishedGenerating = true
-	}
-	const send = (data: string) => {
-		if (!firstMessageSent) {
-			res.write(data)
-
-			firstMessageSent = true
-
-			intervalId = setInterval(() => {
-				const next = sendQueue.shift()
-				if (next !== undefined) {
-					res.write(next)
-				} else if (finishedGenerating) {
-					clearInterval(intervalId)
-
-					res.end()
-				}
-			}, SEND_MILLIS)
-		} else {
-			sendQueue.push(data)
-		}
+export default async function handler(req: NextRequest): Promise<Response> {
+	if (req.method !== "POST") {
+		return new Response("Method Not Allowed", { status: 405 })
 	}
 
-	const messages = serializeMessages(JSON.parse(req.body).messages as string[])
+	let messages: Message[]
+
+	try {
+		messages = serializeMessages((await req.json()).messages as string[])
+	} catch {
+		return new Response("Bad Request", { status: 400 })
+	}
 
 	// user has not yet sent message
 	if (messages.length === 2) {
@@ -141,27 +64,69 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
 		const words = content.split(" ")
 
-		let contentReached = ""
+		return new Response(
+			new ReadableStream({
+				start: async (controller) => {
+					for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+						await new Promise((res) => setTimeout(res, wordIndex > 25 ? 0 : 20))
 
-		for (const word of words) {
-			contentReached += word + " "
+						controller.enqueue(textEncoder.encode(words[wordIndex] + " "))
+					}
 
-			send(contentReached)
-		}
-
-		onFinishGenerating()
-
-		return
+					controller.close()
+				},
+			}),
+			{
+				headers: { "Content-Type": "text/plain; charset=utf-8" },
+			}
+		)
 	}
 
-	void createChatCompletion({
-		messages,
-		onContent: (content) => {
-			send(content)
+	const response = await fetch("https://api.openai.com/v1/chat/completions", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${env.OPENAI_SECRET_KEY}`,
 		},
-		onFinish: () => {
-			onFinishGenerating()
+		body: JSON.stringify({
+			messages,
+			model,
+			temperature: 0,
+			stream: true,
+		}),
+	})
+
+	let { readable, writable } = new TransformStream({
+		transform: (chunk, controller) => {
+			const parts = textDecoder
+				.decode(chunk)
+				.split("\n")
+				.filter((line: any) => line !== "")
+				.map((line: any) => line.replace(/^data: /, ""))
+
+			for (const part of parts) {
+				if (part !== "[DONE]") {
+					try {
+						const contentDelta = JSON.parse(part).choices[0].delta.content as string
+
+						if (contentDelta === undefined) {
+							continue
+						}
+
+						controller.enqueue(textEncoder.encode(contentDelta))
+					} catch (error) {
+						console.error(error)
+					}
+				} else {
+					return
+				}
+			}
 		},
-		onError: (error) => console.error(error),
+	})
+
+	response.body?.pipeTo(writable)
+
+	return new Response(readable, {
+		headers: { "Content-Type": "text/plain; charset=utf-8" },
 	})
 }
