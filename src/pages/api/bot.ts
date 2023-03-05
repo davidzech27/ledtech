@@ -67,10 +67,10 @@ export default async function handler(req: NextRequest): Promise<Response> {
 		return new Response(
 			new ReadableStream({
 				start: async (controller) => {
-					for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
-						await new Promise((res) => setTimeout(res, wordIndex > 25 ? 0 : 20))
+					for (const word of words) {
+						await new Promise((res) => setTimeout(res, 20))
 
-						controller.enqueue(textEncoder.encode(words[wordIndex] + " "))
+						controller.enqueue(textEncoder.encode(word + " "))
 					}
 
 					controller.close()

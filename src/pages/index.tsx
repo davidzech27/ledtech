@@ -149,8 +149,8 @@ const Home: NextPage = () => {
 	return (
 		<>
 			<Head>
-				<title>Building the AI-driven future of education</title>
-				{/* <link rel="icon" href="/favicon.ico" /> */}
+				<title>Building AI-driven education</title>
+				<link rel="icon" href="/favicon.ico" />
 			</Head>
 			<main
 				className={clsx(
