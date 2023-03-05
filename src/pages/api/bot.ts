@@ -102,11 +102,28 @@ export default async function handler(req: NextRequest): Promise<Response> {
 				if (response.body) {
 					const reader = response.body.getReader()
 
+					let previousIncompleteChunk: Uint8Array | undefined = undefined
+
 					while (true) {
 						const result = await reader.read()
 
 						if (!result.done) {
-							const chunk = result.value
+							let chunk = result.value
+
+							if (previousIncompleteChunk !== undefined) {
+								const newChunk = new Uint8Array(
+									previousIncompleteChunk.length + chunk.length
+								)
+
+								newChunk.set(previousIncompleteChunk)
+
+								newChunk.set(chunk, previousIncompleteChunk.length)
+
+								chunk = newChunk
+
+								previousIncompleteChunk = undefined
+							}
+
 							console.log({ parts: textDecoder.decode(chunk) })
 							const parts = textDecoder
 								.decode(chunk)
@@ -122,6 +139,8 @@ export default async function handler(req: NextRequest): Promise<Response> {
 
 										controller.enqueue(textEncoder.encode(contentDelta))
 									} catch (error) {
+										previousIncompleteChunk = chunk
+
 										console.error(error)
 									}
 								} else {
