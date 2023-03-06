@@ -124,7 +124,6 @@ export default async function handler(req: NextRequest): Promise<Response> {
 								previousIncompleteChunk = undefined
 							}
 
-							console.log({ parts: textDecoder.decode(chunk) })
 							const parts = textDecoder
 								.decode(chunk)
 								.split("\n")

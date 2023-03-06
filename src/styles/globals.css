@@ -16,3 +16,7 @@
 * {
 	@apply overscroll-none;
 }
+
+body {
+	padding-bottom: env(safe-area-inset-bottom);
+}

@@ -130,11 +130,13 @@ const Home: NextPage = () => {
 
 			setAddingContent(true)
 
-			setMessages((prev) => [...prev, messageInput.trim()])
+			setMessages((prev) => [...prev, messageInput.trimEnd()])
 
-			getNextBotMessage({ messages: [...messages, messageInput.trim()] })
+			getNextBotMessage({ messages: [...messages, messageInput.trimEnd()] })
 
 			process.nextTick(() => setMessageInput(""))
+
+			setTimeout(() => setMessageInput(""), 50) // for some reason, on mobile, when onSend is called from onKeyDown event, doesn't erase text if called with process.nextTick
 
 			scrollToBottom()
 		},
@@ -154,83 +156,92 @@ const Home: NextPage = () => {
 			</Head>
 			<main
 				className={clsx(
-					"flex h-screen flex-col bg-primary px-[10%] pt-[7vh] text-white",
+					"fixed bottom-0 h-screen w-full bg-primary text-white",
 					workSans.className
 				)}
+				style={{
+					padding:
+						"env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)",
+				}}
 			>
-				<div className="relative flex h-[93vh] w-full flex-col overflow-y-scroll rounded-lg border-[0.5px] border-white/50 px-4 pt-2 text-lg">
-					<div ref={messagesRef} className="overflow-y-scroll text-white/[0.85]">
-						{messages.map((message, index) => {
-							return (
-								<div
-									key={index}
-									className={clsx(
-										index % 2 === 1 && "font-medium opacity-[0.65]",
-										"mb-1 whitespace-pre-line"
-									)}
-								>
-									{message}
-								</div>
-							)
-						})}
+				<div className="flex h-screen flex-col px-[10%] pt-[16vh]">
+					<div className="relative flex h-full w-full flex-col overflow-y-scroll rounded-lg border-[0.5px] border-white/50 px-4 pt-2 text-lg">
+						<div ref={messagesRef} className="overflow-y-scroll text-white/[0.85]">
+							{messages.map((message, index) => {
+								return (
+									<div
+										key={index}
+										className={clsx(
+											index % 2 === 1 && "font-medium opacity-[0.65]",
+											"mb-1 whitespace-pre-line"
+										)}
+									>
+										{message}
+									</div>
+								)
+							})}
 
-						<div className="h-[20vh]"></div>
-					</div>
+							<div className="h-[22vh]"></div>
+						</div>
 
-					<div className="absolute bottom-0 right-0 h-[15vh] min-h-[100px] w-full px-4 pb-4">
-						<form
-							onSubmit={(e) => {
-								e.preventDefault()
+						<div className="absolute bottom-0 right-0 h-[15vh] min-h-[100px] w-full px-4 pb-4">
+							<form
+								onSubmit={(e) => {
+									e.preventDefault()
 
-								onSend()
-							}}
-							className="flex h-full w-full items-center justify-between rounded-lg border-[0.5px] border-white/50 bg-white/[0.06] backdrop-blur-lg"
-						>
-							<textarea
-								value={messageInput}
-								onChange={(e) => setMessageInput(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.code === "Enter") {
-										onSend()
-									}
+									onSend()
 								}}
-								ref={textInputRef}
-								autoCapitalize="false"
-								autoSave="true"
-								autoFocus
-								className="scrollbar-none h-full w-full resize-none bg-transparent px-3 py-1.5 outline-none"
-							/>
-
-							<button
-								className={clsx(
-									"group my-4 mx-5 flex h-[9vh] w-[9vh] items-center justify-center rounded-lg border-[0.5px] border-white/50 px-[1.75vh] transition-all duration-150",
-									buttonDisabled
-										? "cursor-default bg-white/[0.06]"
-										: "bg-white/[0.1] hover:bg-white/[0.15]"
-								)}
-								disabled={buttonDisabled}
+								className="flex h-full w-full items-center justify-between rounded-lg border-[0.5px] border-white/50 bg-white/[0.06] backdrop-blur-lg"
 							>
-								<div
-									className={clsx(
-										"h-[5.5vh] w-[5.5vh] rounded-full border-4 border-white",
-										buttonDisabled
-											? "opacity-[0.65]"
-											: "opacity-100 group-hover:opacity-100"
-									)}
-								></div>
-							</button>
-						</form>
-					</div>
-				</div>
+								<textarea
+									value={messageInput}
+									onChange={(e) => setMessageInput(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.code === "Enter") {
+											onSend()
+										}
+									}}
+									placeholder={addingContent ? undefined : "Ask something"}
+									ref={textInputRef}
+									autoCapitalize="false"
+									autoSave="true"
+									autoFocus
+									className="scrollbar-none h-full w-full resize-none bg-transparent px-3 py-1.5 outline-none placeholder:text-white placeholder:opacity-[0.4]"
+								/>
 
-				<footer className="flex h-[7vh] w-full items-center justify-center pb-[0.45vh]">
-					<a
-						href={`mailto:${env.NEXT_PUBLIC_CONTACT_EMAIL}`}
-						className="cursor-pointer text-sm font-medium underline underline-offset-1 opacity-70 transition-all duration-150 hover:opacity-100"
-					>
-						Contact us here
-					</a>
-				</footer>
+								<button
+									className={clsx(
+										"group my-4 mx-5 flex h-[9vh] w-[9vh] items-center justify-center rounded-lg border-[0.5px] border-white/50 px-[1.75vh] transition-all duration-150",
+										buttonDisabled
+											? "cursor-default bg-white/[0.06]"
+											: "bg-white/[0.1] hover:bg-white/[0.15] active:bg-white/[0.15]"
+									)}
+									disabled={buttonDisabled}
+								>
+									<div
+										className={clsx(
+											"h-[5.5vh] w-[5.5vh] rounded-full border-4 border-white",
+											buttonDisabled
+												? "opacity-[0.65]"
+												: "opacity-100 group-hover:opacity-100 group-active:opacity-100"
+										)}
+									></div>
+								</button>
+							</form>
+						</div>
+					</div>
+
+					<footer>
+						<div className="flex h-[7vh] items-center justify-center pb-[0.45vh]">
+							<a
+								href={`mailto:${env.NEXT_PUBLIC_CONTACT_EMAIL}`}
+								className="cursor-pointer text-sm font-medium underline underline-offset-1 opacity-70 transition-all duration-150 hover:opacity-100 active:opacity-100"
+							>
+								Contact us here
+							</a>
+						</div>
+					</footer>
+				</div>
 			</main>
 		</>
 	)
