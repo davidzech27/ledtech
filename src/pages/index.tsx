@@ -1,6 +1,6 @@
 import { type NextPage } from "next"
 import Head from "next/head"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useLayoutEffect, FC, ReactElement } from "react"
 import { Work_Sans } from "next/font/google"
 import clsx from "clsx"
 import { useDebouncedCallback } from "use-debounce"
@@ -14,6 +14,16 @@ const ADD_CONTENT_MILLIS = 140
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
+
+const NoSSR: FC<{ children: ReactElement }> = ({ children }) => {
+	const [isMounted, setIsMounted] = useState(false)
+
+	useLayoutEffect(() => {
+		setIsMounted(true)
+	}, [])
+
+	return isMounted ? children : null
+}
 
 const getBotMessage = async ({
 	messages,
@@ -164,7 +174,21 @@ const Home: NextPage = () => {
 						"env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)",
 				}}
 			>
-				<div className="flex h-screen flex-col px-[10%] pt-[16vh]">
+				<div className="flex h-screen flex-col px-[10%] pt-[7vh]">
+					<NoSSR>
+						<div
+							className={
+								typeof navigator !== "undefined" &&
+								navigator.userAgent.includes("Safari") &&
+								!navigator.userAgent.includes("Chrome") &&
+								!navigator.userAgent.includes("EdgiOS") &&
+								navigator.userAgent.includes("iPhone")
+									? "h-[9vh]"
+									: "h-0"
+							}
+						></div>
+					</NoSSR>
+
 					<div className="relative flex h-full w-full flex-col overflow-y-scroll rounded-lg border-[0.5px] border-white/50 px-4 pt-2 text-lg">
 						<div ref={messagesRef} className="overflow-y-scroll text-white/[0.85]">
 							{messages.map((message, index) => {
@@ -230,7 +254,6 @@ const Home: NextPage = () => {
 							</form>
 						</div>
 					</div>
-
 					<footer>
 						<div className="flex h-[7vh] items-center justify-center pb-[0.45vh]">
 							<a
