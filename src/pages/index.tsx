@@ -10,7 +10,7 @@ const workSans = Work_Sans({
 	subsets: ["latin"],
 })
 
-const ADD_CONTENT_MILLIS = 140
+const ADD_CONTENT_MILLIS = 0
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
@@ -27,10 +27,12 @@ const NoSSR: FC<{ children: ReactElement }> = ({ children }) => {
 
 const getBotMessage = async ({
 	messages,
+	userID,
 	onContent,
 	onFinish,
 }: {
 	messages: string[]
+	userID: string
 	onContent: (content: string) => void
 	onFinish: () => void
 }) => {
@@ -39,6 +41,7 @@ const getBotMessage = async ({
 		body: textEncoder.encode(
 			JSON.stringify({
 				messages,
+				userID,
 			})
 		),
 	})
@@ -80,12 +83,29 @@ const Home: NextPage = () => {
 		scrollToBottom()
 	}
 
+	const userID = useRef<string>()
+
 	const contentQueue = useRef<string[]>([])
 	const receivingContent = useRef(false)
 
 	const getNextBotMessage = ({ messages }: { messages: string[] }) => {
+		if (userID.current === undefined) {
+			const storedUserID = localStorage.getItem("userID")
+
+			userID.current = storedUserID !== null ? storedUserID : undefined
+
+			if (userID.current === undefined) {
+				const newUserId = Math.floor(Math.random() * 1000000).toString()
+
+				localStorage.setItem("userID", newUserId)
+
+				userID.current = newUserId
+			}
+		}
+
 		void getBotMessage({
 			messages,
+			userID: userID.current,
 			onContent: (content) => {
 				if (!receivingContent.current) {
 					receivingContent.current = true
@@ -232,7 +252,7 @@ const Home: NextPage = () => {
 									autoCapitalize="false"
 									autoSave="true"
 									autoFocus
-									className="scrollbar-none h-full w-full resize-none bg-transparent px-3 py-1.5 outline-none placeholder:text-white placeholder:opacity-[0.4]"
+									className="scrollbar-none h-full w-full resize-none bg-transparent px-3 py-1.5 outline-none placeholder:select-none placeholder:text-white placeholder:opacity-[0.4]"
 								/>
 
 								<button
@@ -260,7 +280,7 @@ const Home: NextPage = () => {
 						<div className="flex h-[7vh] items-center justify-center pb-[0.45vh]">
 							<a
 								href={`mailto:${env.NEXT_PUBLIC_CONTACT_EMAIL}`}
-								className="cursor-pointer text-sm font-medium underline underline-offset-1 opacity-70 transition-all duration-150 hover:opacity-100 active:opacity-100"
+								className="cursor-pointer select-none text-sm font-medium underline underline-offset-1 opacity-70 transition-all duration-150 hover:opacity-100 active:opacity-100"
 							>
 								Contact us here
 							</a>

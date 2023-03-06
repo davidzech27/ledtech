@@ -7,6 +7,7 @@ import { z } from "zod"
 const server = z.object({
 	NODE_ENV: z.enum(["development", "test", "production"]),
 	OPENAI_SECRET_KEY: z.string(),
+	DISCORD_WEBHOOK_URL: z.string().url(),
 })
 
 /**
@@ -27,6 +28,7 @@ const processEnv = {
 	NODE_ENV: process.env.NODE_ENV,
 	OPENAI_SECRET_KEY: process.env.OPENAI_SECRET_KEY,
 	NEXT_PUBLIC_CONTACT_EMAIL: process.env.NEXT_PUBLIC_CONTACT_EMAIL,
+	DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL,
 }
 
 // Don't touch the part below

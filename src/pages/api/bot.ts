@@ -50,10 +50,12 @@ export default async function handler(req: NextRequest): Promise<Response> {
 		return new Response("Method Not Allowed", { status: 405 })
 	}
 
+	const reqJSON = (await req.json()) as { userID: string; messages: string[] }
+
 	let messages: Message[]
 
 	try {
-		messages = serializeMessages((await req.json()).messages as string[])
+		messages = serializeMessages(reqJSON.messages as string[])
 	} catch {
 		return new Response("Bad Request", { status: 400 })
 	}
@@ -81,6 +83,16 @@ export default async function handler(req: NextRequest): Promise<Response> {
 			}
 		)
 	}
+
+	void fetch(env.DISCORD_WEBHOOK_URL, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			content: `User with id ${reqJSON.userID} sent message "${messages.at(-1)?.content}"`,
+		}),
+	})
 
 	const response = await fetch("https://api.openai.com/v1/chat/completions", {
 		method: "POST",
