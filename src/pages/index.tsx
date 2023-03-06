@@ -10,7 +10,7 @@ const workSans = Work_Sans({
 	subsets: ["latin"],
 })
 
-const ADD_CONTENT_MILLIS = 0
+const ADD_CONTENT_MILLIS = 150
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
