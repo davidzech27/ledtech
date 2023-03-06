@@ -20,8 +20,6 @@ const NoSSR: FC<{ children: ReactElement }> = ({ children }) => {
 
 	useLayoutEffect(() => {
 		setIsMounted(true)
-
-		alert(navigator.userAgent)
 	}, [])
 
 	return isMounted ? children : null
