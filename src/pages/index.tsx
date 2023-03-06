@@ -20,6 +20,8 @@ const NoSSR: FC<{ children: ReactElement }> = ({ children }) => {
 
 	useLayoutEffect(() => {
 		setIsMounted(true)
+
+		alert(navigator.userAgent)
 	}, [])
 
 	return isMounted ? children : null
@@ -182,6 +184,8 @@ const Home: NextPage = () => {
 								navigator.userAgent.includes("Safari") &&
 								!navigator.userAgent.includes("Chrome") &&
 								!navigator.userAgent.includes("EdgiOS") &&
+								!navigator.userAgent.includes("DuckDuckGo") &&
+								!navigator.userAgent.includes("FxiOS") &&
 								navigator.userAgent.includes("iPhone")
 									? "h-[9vh]"
 									: "h-0"
