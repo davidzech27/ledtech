@@ -18,7 +18,7 @@ const textDecoder = new TextDecoder()
 const NoSSR: FC<{ children: ReactElement }> = ({ children }) => {
 	const [isMounted, setIsMounted] = useState(false)
 
-	useLayoutEffect(() => {
+	;(typeof window === "undefined" ? useEffect : useLayoutEffect)(() => {
 		setIsMounted(true)
 	}, [])
 

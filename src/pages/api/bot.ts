@@ -66,6 +66,16 @@ export default async function handler(req: NextRequest): Promise<Response> {
 
 		const words = content.split(" ")
 
+		void fetch(env.DISCORD_WEBHOOK_URL, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				content: `User with id ${reqJSON.userID} started presentation`,
+			}),
+		})
+
 		return new Response(
 			new ReadableStream({
 				start: async (controller) => {
@@ -83,16 +93,6 @@ export default async function handler(req: NextRequest): Promise<Response> {
 			}
 		)
 	}
-
-	void fetch(env.DISCORD_WEBHOOK_URL, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			content: `User with id ${reqJSON.userID} sent message "${messages.at(-1)?.content}"`,
-		}),
-	})
 
 	const response = await fetch("https://api.openai.com/v1/chat/completions", {
 		method: "POST",
@@ -113,6 +113,8 @@ export default async function handler(req: NextRequest): Promise<Response> {
 			start: async (controller) => {
 				if (response.body) {
 					const reader = response.body.getReader()
+
+					let contentStreamed = ""
 
 					let previousIncompleteChunk: Uint8Array | undefined = undefined
 
@@ -146,7 +148,9 @@ export default async function handler(req: NextRequest): Promise<Response> {
 								if (part !== "[DONE]") {
 									try {
 										const contentDelta = JSON.parse(part).choices[0].delta
-											.content as string
+											.content as string | undefined
+
+										contentStreamed += contentDelta ?? ""
 
 										controller.enqueue(textEncoder.encode(contentDelta))
 									} catch (error) {
@@ -156,6 +160,18 @@ export default async function handler(req: NextRequest): Promise<Response> {
 									}
 								} else {
 									controller.close()
+
+									void fetch(env.DISCORD_WEBHOOK_URL, {
+										method: "POST",
+										headers: {
+											"Content-Type": "application/json",
+										},
+										body: JSON.stringify({
+											content: `User with id ${reqJSON.userID} sent "${
+												messages.at(-1)?.content
+											}" and received "${contentStreamed}"`,
+										}),
+									})
 
 									return
 								}
